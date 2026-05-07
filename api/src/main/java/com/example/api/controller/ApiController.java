@@ -1,9 +1,12 @@
 package com.example.api.controller;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,8 +34,21 @@ public class ApiController {
     
     @PostMapping("/orders")
     public ResponseEntity<String> addOrder(@RequestBody Order order) {
-        kafkaTemplate.send(TOPIC, order);
-        return ResponseEntity.ok("Order sent to Kafka successfully");
+        String partitionKey = String.valueOf(order.getCustomerId());
+        
+        CompletableFuture<SendResult<String, Object>> future = 
+            kafkaTemplate.send(TOPIC, partitionKey, order);
+        
+        future.whenComplete((result, ex) -> {
+            if (ex == null) {
+                System.out.println("Sent message with key: " + partitionKey + 
+                    " to partition: " + result.getRecordMetadata().partition());
+            } else {
+                System.err.println("Failed to send message: " + ex.getMessage());
+            }
+        });
+        
+        return ResponseEntity.ok("Order sent to Kafka successfully with key: " + partitionKey);
     }
     
     @GetMapping("/orders/search")

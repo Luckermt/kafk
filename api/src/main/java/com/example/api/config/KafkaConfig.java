@@ -25,6 +25,8 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(ProducerConfig.PARTITIONER_CLASS_CONFIG,
+            "org.apache.kafka.clients.producer.internals.DefaultPartitioner");
         return new DefaultKafkaProducerFactory<>(configProps);
     }
     
