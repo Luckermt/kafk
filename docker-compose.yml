@@ -5,12 +5,12 @@ services:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_CLIENT_PORT}
+      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TICK_TIME}
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      test: ["CMD", "nc", "-z", "localhost", "${ZOOKEEPER_CLIENT_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,19 +22,19 @@ services:
       zookeeper:
         condition: service_healthy
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT}:${KAFKA_PORT}"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_CLIENT_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_INTERNAL_PORT},PLAINTEXT_HOST://localhost:${KAFKA_PORT}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:${KAFKA_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,18 +43,18 @@ services:
     image: postgres:15-alpine
     container_name: postgres
     environment:
-      POSTGRES_DB: analytics_db
-      POSTGRES_USER: analytics_user
-      POSTGRES_PASSWORD: analytics_pass
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -70,13 +70,13 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
-      SPRING_DATASOURCE_USERNAME: analytics_user
-      SPRING_DATASOURCE_PASSWORD: analytics_pass
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: ${DATA_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${DATA_SERVICE_SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DATA_SERVICE_SPRING_DATASOURCE_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${DATA_SERVICE_SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      SERVER_PORT: ${DATA_SERVICE_PORT}
     ports:
-      - "8081:8081"
+      - "${DATA_SERVICE_PORT}:${DATA_SERVICE_PORT}"
     networks:
       - app-network
 
@@ -88,11 +88,11 @@ services:
     depends_on:
       - data-service
     environment:
-      DATA_SERVICE_URL: http://data-service:8081
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SERVER_PORT: 8080
+      DATA_SERVICE_URL: ${API_SERVICE_DATA_SERVICE_URL}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${API_SERVICE_SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      SERVER_PORT: ${API_SERVICE_PORT}
     ports:
-      - "8080:8080"
+      - "${API_SERVICE_PORT}:${API_SERVICE_PORT}"
     networks:
       - app-network
 
