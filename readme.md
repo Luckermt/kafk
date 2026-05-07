@@ -110,22 +110,21 @@ curl -X POST http://localhost:8080/api/orders \
 
 #### Создание заказа
 ```http
-POST /api/orders
-Content-Type: application/json
-
-{
-  "customerId": 1,        // Используется как ключ партиционирования Kafka
-  "productName": "Laptop",
-  "quantity": 1,
-  "price": 999.99,
-  "status": "PENDING"     // Опционально, по умолчанию "PENDING"
-}
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": 1,
+    "productName": "Test Product",
+    "quantity": 1,
+    "price": 99.99,
+    "status": "PENDING"
+  }'
 ```
 
 **Особенности:**
 - Все заказы с одинаковым `customerId` попадают в одну партицию Kafka
 - Статус по умолчанию: "PENDING"
-- Требуется существующий customerId в базе данных
+
 
 **Пример ответа:**
 ```
@@ -186,7 +185,7 @@ for i in {1..5}; do
     }"
 done
 
-# Создать заказы для разных клиентов (попадут в разные партиции)
+# Создать заказы для разных клиентов
 curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{"customerId": 2, "productName": "Keyboard", "quantity": 1, "price": 89.99, "status": "PENDING"}'
@@ -202,9 +201,9 @@ curl -X POST http://localhost:8080/api/orders \
 sleep 2
 
 # Проверить заказы
-curl "http://localhost:8080/api/orders/search?status=PENDING" | jq
-curl "http://localhost:8080/api/reports/sales-by-product" | jq
-curl "http://localhost:8080/api/reports/customer-spending" | jq
+curl "http://localhost:8080/api/orders/search?status=PENDING"
+curl "http://localhost:8080/api/reports/sales-by-product"
+curl "http://localhost:8080/api/reports/customer-spending"
 ```
 
 ## Конфигурация
